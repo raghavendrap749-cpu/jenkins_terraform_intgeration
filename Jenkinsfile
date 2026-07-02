@@ -17,19 +17,25 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                bat 'terraform init'
+                dir('terraform') {
+                    bat 'terraform init'
+                }
             }
         }
 
         stage('Terraform Validate') {
             steps {
-                bat 'terraform validate'
+                dir('terraform') {
+                    bat 'terraform validate'
+                }
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                bat 'terraform plan -out=tfplan'
+                dir('terraform') {
+                    bat 'terraform plan -out=tfplan'
+                }
             }
         }
 
@@ -41,7 +47,9 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                bat 'terraform apply -auto-approve tfplan'
+                dir('terraform') {
+                    bat 'terraform apply -auto-approve tfplan'
+                }
             }
         }
     }
