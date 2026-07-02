@@ -1,68 +1,57 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    ARM_CLIENT_ID       = credentials('AZURE_CLIENT_ID')
-    ARM_CLIENT_SECRET   = credentials('AZURE_CLIENT_SECRET')
-    ARM_SUBSCRIPTION_ID = credentials('AZURE_SUBSCRIPTION_ID')
-    ARM_TENANT_ID       = credentials('AZURE_TENANT_ID')
-    TF_DIR              = 'terraform'
-  }
+    environment {
+        ARM_CLIENT_ID       = credentials('ARM_CLIENT_ID')
+        ARM_CLIENT_SECRET   = credentials('ARM_CLIENT_SECRET')
+        ARM_SUBSCRIPTION_ID = credentials('ARM_SUBSCRIPTION_ID')
+        ARM_TENANT_ID       = credentials('ARM_TENANT_ID')
+    }
 
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-        script {
-          env.CURRENT_BRANCH = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-          echo "Building branch: ${env.CURRENT_BRANCH}"
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-org/your-tf-repo.git'
+            }
         }
-      }
-    }
 
-    stage('Terraform Init') {
-      steps {
-        dir("${TF_DIR}") {
-          sh 'terraform init -input=false'
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
         }
-      }
-    }
 
-    stage('Terraform Validate') {
-      steps {
-        dir("${TF_DIR}") {
-          sh 'terraform validate'
+        stage('Terraform Validate') {
+            steps {
+                sh 'terraform validate'
+            }
         }
-      }
-    }
 
-    stage('Terraform Plan') {
-      steps {
-        dir("${TF_DIR}") {
-          sh 'terraform plan -out=tfplan -input=false'
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -out=tfplan'
+            }
         }
-      }
-    }
 
-    stage('Approval & Apply') {
-      when {
-        branch 'main'   // Only run apply on main branch
-      }
-      steps {
-        input message: "Apply VNet plan on branch '${env.CURRENT_BRANCH}'?"
-        dir("${TF_DIR}") {
-          sh 'terraform apply -input=false tfplan'
+        stage('Approval') {
+            steps {
+                input message: 'Review the plan. Approve to apply?', ok: 'Apply'
+            }
         }
-      }
-    }
-  }
 
-  post {
-    success {
-      echo "✅ VNet created/updated on branch ${env.CURRENT_BRANCH}."
+        stage('Terraform Apply') {
+            steps {
+                sh 'terraform apply -auto-approve tfplan'
+            }
+        }
     }
-    failure {
-      echo "❌ Pipeline failed - VNet was not created/updated."
+
+    post {
+        failure {
+            echo 'Pipeline failed! Check the logs.'
+        }
+        success {
+            echo 'Infrastructure provisioned successfully!'
+        }
     }
-  }
 }
