@@ -44,14 +44,12 @@ pipeline {
       }
     }
 
-    stage('Approval') {
-      steps {
-        input message: "Apply VNet plan on branch '${env.CURRENT_BRANCH}'"
+    stage('Approval & Apply') {
+      when {
+        branch 'main'   // Only run apply on main branch
       }
-    }
-
-    stage('Terraform Apply') {
       steps {
+        input message: "Apply VNet plan on branch '${env.CURRENT_BRANCH}'?"
         dir("${TF_DIR}") {
           sh 'terraform apply -input=false tfplan'
         }
@@ -61,10 +59,10 @@ pipeline {
 
   post {
     success {
-      echo "VNet created/updated on branch ${env.CURRENT_BRANCH}. Open a PR to merge."
+      echo "✅ VNet created/updated on branch ${env.CURRENT_BRANCH}."
     }
     failure {
-      echo "Pipeline failed - VNet was not created/updated."
+      echo "❌ Pipeline failed - VNet was not created/updated."
     }
   }
 }
