@@ -1,0 +1,70 @@
+pipeline {
+  agent any
+
+  environment {
+    ARM_CLIENT_ID       = credentials('AZURE_CLIENT_ID')
+    ARM_CLIENT_SECRET   = credentials('AZURE_CLIENT_SECRET')
+    ARM_SUBSCRIPTION_ID = credentials('AZURE_SUBSCRIPTION_ID')
+    ARM_TENANT_ID       = credentials('AZURE_TENANT_ID')
+    TF_DIR              = 'terraform'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+        script {
+          env.CURRENT_BRANCH = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+          echo "Building branch: ${env.CURRENT_BRANCH}"
+        }
+      }
+    }
+
+    stage('Terraform Init') {
+      steps {
+        dir("${TF_DIR}") {
+          sh 'terraform init -input=false'
+        }
+      }
+    }
+
+    stage('Terraform Validate') {
+      steps {
+        dir("${TF_DIR}") {
+          sh 'terraform validate'
+        }
+      }
+    }
+
+    stage('Terraform Plan') {
+      steps {
+        dir("${TF_DIR}") {
+          sh 'terraform plan -out=tfplan -input=false'
+        }
+      }
+    }
+
+    stage('Approval') {
+      steps {
+        input message: "Apply VNet plan on branch '${env.CURRENT_BRANCH}'"
+      }
+    }
+
+    stage('Terraform Apply') {
+      steps {
+        dir("${TF_DIR}") {
+          sh 'terraform apply -input=false tfplan'
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "VNet created/updated on branch ${env.CURRENT_BRANCH}. Open a PR to merge."
+    }
+    failure {
+      echo "Pipeline failed - VNet was not created/updated."
+    }
+  }
+}
