@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-org/your-tf-repo.git'
+                git branch: 'main', url: 'https://github.com/raghavendrap749-cpu/jenkins_terraform_intgeration.git'
             }
         }
 
