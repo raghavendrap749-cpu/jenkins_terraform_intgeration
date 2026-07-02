@@ -18,7 +18,7 @@ resource "azurerm_public_ip" "pip" {
  name = "jenkins-vm-pip"
  resource_group_name = azurerm_resource_group.rg.name
  location = azurerm_resource_group.rg.location
- allocation_method = "dynamic"
+ allocation_method = "Dynamic"
  sku                 = "Standard"
 }
 resource "azurerm_network_security_group" "nsg" {
